@@ -1,0 +1,50 @@
+import blockchain;
+
+struct SSTData {
+    amount:   Uint128,
+    smt_root: Byte32,
+    info:     Byte32,
+}
+
+struct AccountValue {
+    amount:    Uint128,
+    nonce:     Uint64,
+    timestamp: Uint64,
+}
+
+struct Target {
+    to: Byte32,       //接收方公钥hash
+    amount:Uint128,   //转账金额
+}
+
+vector Targets <Target>;
+
+table RawLedgerTransaction {
+  ledger_cell_typeid: Byte32,     // 避免跨ledger cells的签名重放攻击
+  from:               Byte32,     // publickey hash
+  nonce:              Uint64,     // 本次交易的nonce
+  total_amount:       Uint128,    // 转账总额
+  to:                 Targets,
+}
+
+table LegerTransaction {
+    raw: RawLedgerTransaction,
+    signature: Bytes,
+}
+
+vector LegerTransaction <byte>;
+
+struct SmtUpdateItem {
+    key:       Byte32,
+    old_value: AccountValue,
+    new_value: AccountValue,
+}
+
+vector SmtUpdateItemVec <SmtUpdateItem>;
+
+table SmtUpdateAction {
+    updates: SmtUpdateItemVec,
+    proof:  SmtProof,
+}
+
+vector SmtProof <byte>;
