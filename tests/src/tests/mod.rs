@@ -1,9 +1,15 @@
-mod test_smt;
+use ckb_testtool::bytes::Bytes;
+use rand::{thread_rng, Rng};
+
 mod misc;
-mod mol;
+mod test_contracts;
+mod test_smt;
 
-const MAX_CYCLES: u64 = 10_000_000;
+const MAX_CYCLES: u64 = 100_000_000;
 
-// error numbers
-const ERROR_EMPTY_ARGS: i8 = 5;
-
+pub fn random_20bytes() -> Bytes {
+    let mut rng = thread_rng();
+    let mut buf = vec![0u8; 20];
+    rng.fill(&mut buf[..]);
+    Bytes::from(buf)
+}

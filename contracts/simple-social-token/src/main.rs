@@ -13,6 +13,7 @@
 // define modules
 mod entry;
 mod error;
+mod hash;
 
 use ckb_std::{
     default_alloc,

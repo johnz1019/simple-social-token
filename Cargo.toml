@@ -1,5 +1,5 @@
 [workspace]
-members = ["tests", "contracts/simple-social-token"]
+members = ["tests","sst-mol", "contracts/simple-social-token"]
 
 [profile.release]
 overflow-checks = true

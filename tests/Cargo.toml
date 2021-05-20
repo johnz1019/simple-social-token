@@ -18,3 +18,4 @@ rand = "0.6.5"
 rand_chacha = "0.1.1"
 sparse-merkle-tree = "0.4.0-rc1"
 blake2b-rs = "0.1.5"
+sst-mol = {path = "../sst-mol"}

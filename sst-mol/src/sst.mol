@@ -1,24 +1,30 @@
 import blockchain;
 
+
+//Cell的data
 struct SSTData {
     amount:   Uint128,
     smt_root: Byte32,
     info:     Byte32,
 }
 
+//每一个账户的Value
 struct AccountValue {
     amount:    Uint128,
     nonce:     Uint64,
     timestamp: Uint64,
 }
 
+//转账的目的地
 struct Target {
     to: Byte32,       //接收方公钥hash
     amount:Uint128,   //转账金额
 }
 
+//一次给多个用户转账
 vector Targets <Target>;
 
+//一次原始交易
 table RawLedgerTransaction {
   ledger_cell_typeid: Byte32,     // 避免跨ledger cells的签名重放攻击
   from:               Byte32,     // publickey hash
@@ -27,24 +33,33 @@ table RawLedgerTransaction {
   to:                 Targets,
 }
 
+//交易加上签名
 table LegerTransaction {
     raw: RawLedgerTransaction,
     signature: Bytes,
 }
 
-vector LegerTransaction <byte>;
 
+//一系列交易
+vector LegerTransactionVec <LegerTransaction>;
+
+
+//SMT的更新项
 struct SmtUpdateItem {
     key:       Byte32,
     old_value: AccountValue,
     new_value: AccountValue,
 }
 
+//SMT的MerkleProof
+vector SmtProof <byte>;
+
+//一系列更新项
 vector SmtUpdateItemVec <SmtUpdateItem>;
 
+//一次更新需要的所有信息
 table SmtUpdateAction {
+    txs:     LegerTransactionVec,
     updates: SmtUpdateItemVec,
-    proof:  SmtProof,
+    proof:   SmtProof,
 }
-
-vector SmtProof <byte>;

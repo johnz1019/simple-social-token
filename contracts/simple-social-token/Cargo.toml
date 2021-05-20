@@ -7,4 +7,7 @@ edition = "2018"
 
 [dependencies]
 ckb-std = "0.7.1"
-sparse-merkle-tree = "0.4.0-rc1"
+#ckb-hash = "0.40.0"
+blake2b-ref = "0.1"
+sparse-merkle-tree = {version = "0.4.0-rc1", default_features = false}
+sst-mol = {path = "../../sst-mol", default_features = false, features = ["no-std"]}

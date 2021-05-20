@@ -84,6 +84,12 @@ checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
 name = "blake2b-ref"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9f6b7b71e3097ed6ee470bab30e1025dd1327eee94ab1e3040b5b5c3f992117"
+
+[[package]]
+name = "blake2b-ref"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95916998c798756098a4eb1b3f2cd510659705a9817bf203d61abd30fbec3e7b"
@@ -398,7 +404,7 @@ version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11d4f751b424962da459cacc19b2da0597bf7ec6786ee49a20e145bd74240f9e"
 dependencies = [
- "blake2b-ref",
+ "blake2b-ref 0.2.1",
  "blake2b-rs",
 ]
 
@@ -2169,8 +2175,10 @@ dependencies = [
 name = "simple-social-token"
 version = "0.1.0"
 dependencies = [
+ "blake2b-ref 0.1.0",
  "ckb-std",
  "sparse-merkle-tree",
+ "sst-mol",
 ]
 
 [[package]]
@@ -2221,6 +2229,16 @@ name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+
+[[package]]
+name = "sst-mol"
+version = "0.1.0"
+dependencies = [
+ "cfg-if 0.1.10",
+ "ckb-std",
+ "ckb-types",
+ "molecule",
+]
 
 [[package]]
 name = "stable_deref_trait"
@@ -2331,6 +2349,7 @@ dependencies = [
  "rand 0.6.5",
  "rand_chacha 0.1.1",
  "sparse-merkle-tree",
+ "sst-mol",
 ]
 
 [[package]]

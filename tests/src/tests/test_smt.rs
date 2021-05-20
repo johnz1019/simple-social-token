@@ -50,8 +50,8 @@ fn test_new_account() {
 
 #[test]
 fn test_large_keys() {
-    let account_count = 1000000;
-    let update_count = 100;
+    let account_count = 10000;
+    let update_count = 10;
     let mut smt = SMT::default();
     let mut rng = thread_rng();
     let mut keys = HashMap::with_capacity(account_count);
