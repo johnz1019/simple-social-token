@@ -4,11 +4,10 @@ use crate::{
 };
 
 use sst_mol::{
-    LegerTransactionVecBuilder, SSTDataBuilder, SmtProofBuilder, SmtUpdateActionBuilder,
-    SmtUpdateItemBuilder, SmtUpdateItemVecBuilder,
+    LegerTransactionBuilder, LegerTransactionVecBuilder, RawLedgerTransactionBuilder,
+    SSTDataBuilder, SmtProofBuilder, SmtUpdateActionBuilder, SmtUpdateItemBuilder,
+    SmtUpdateItemVecBuilder, TargetBuilder, TargetsBuilder,
 };
-
-use std::collections::HashMap;
 
 use rand::{thread_rng, Rng};
 use sparse_merkle_tree::{traits::Value, H256};
@@ -18,7 +17,11 @@ use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*,
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
 
 #[test]
-fn test_success() {
+fn test_transaction() {
+    //设定状态树的参数
+    let account_count = 10000;
+    let update_count = 50;
+
     // deploy contract
     let mut context = Context::default();
     let sst_bin: Bytes = Loader::default().load_binary("simple-social-token");
@@ -37,23 +40,34 @@ fn test_success() {
     let sst_script = context.build_script(&sst_out_point, random_20bytes());
     let sst_script_dep = CellDep::new_builder().out_point(sst_out_point).build();
 
-    //设定状态树的参数
-    let account_count = 10000;
-    let update_count = 10;
     let mut smt = SMT::default();
     let mut rng = thread_rng();
-    let mut keys = HashMap::with_capacity(account_count);
-    //往状态树插入随机生成的Key value
+
+    //往状态树里添加随机值
     for _ in 0..account_count {
         let key: H256 = rng.gen::<[u8; 32]>().into();
         let value = AccountVal::random(&mut rng);
-        keys.insert(key, value.clone());
+        smt.update(key, value).unwrap();
+    }
+
+    //往状态树里添加待测试的值
+    let mut keys = Vec::with_capacity(update_count);
+    for _ in 0..update_count {
+        let key: H256 = rng.gen::<[u8; 32]>().into();
+        //每个账户初始10000个币的余额
+        let value = AccountVal {
+            amount: 10000,
+            nonce: 0,
+            timestamp: 0,
+        };
+        keys.push((key, value.clone()));
         smt.update(key, value).unwrap();
     }
 
     //获得旧的状态树根
     let old_root: H256 = smt.root().clone();
     print!("old root: {:?}\n", old_root);
+
     //生成旧的Cell data
     let sst_data_old = SSTDataBuilder::default()
         .amount(Uint128::from_slice(&(10000000 as u128).to_le_bytes()).unwrap())
@@ -74,20 +88,55 @@ fn test_success() {
         .previous_output(input_out_point)
         .build();
 
-    //随机更新一批Key
-    let mut count = 0;
+    let mut txs_builder = LegerTransactionVecBuilder::default();
     let mut mod_keys = Vec::with_capacity(update_count);
-    for (key, value) in keys.iter() {
-        count += 1;
-        let new_value = AccountVal::random(&mut rng);
+    //开始构建交易转账
+    for two_key in keys.chunks(2).into_iter() {
+        //第一个key转给第二个key，1000个币
+        if two_key.len() >= 2 {
+            let key_0 = two_key[0].0;
+            let key_1 = two_key[1].0;
 
-        mod_keys.push((key.clone(), value.clone(), new_value.clone()));
+            let old_value_0 = two_key[0].1;
+            let old_value_1 = two_key[1].1;
 
-        smt.update(*key, new_value).unwrap();
-        if count > update_count {
-            break;
+            let mut new_value_0 = two_key[0].1;
+            new_value_0.amount -= 1000;
+
+            //发送方需要修改nonce
+            new_value_0.nonce += 1;
+            let mut new_value_1 = two_key[1].1;
+            new_value_1.amount += 1000;
+
+            mod_keys.push((key_0, old_value_0, new_value_0));
+            mod_keys.push((key_1, old_value_1, new_value_1));
+
+            smt.update(key_0, new_value_0).unwrap();
+            smt.update(key_1, new_value_1).unwrap();
+
+            //接收方
+            let targets = TargetsBuilder::default()
+                .push(
+                    TargetBuilder::default()
+                        .to(Byte32::from_slice(two_key[1].0.as_slice()).unwrap())
+                        .amount(Uint128::from_slice(&(1000 as u128).to_le_bytes()).unwrap())
+                        .build(),
+                )
+                .build();
+
+            //发送方
+            let raw = RawLedgerTransactionBuilder::default()
+                .from(Byte32::from_slice(two_key[0].0.as_slice()).unwrap())
+                .to(targets)
+                .nonce(Uint64::from_slice(&(0 as u64).to_le_bytes()).unwrap())
+                .total_amount(Uint128::from_slice(&(1000 as u128).to_le_bytes()).unwrap())
+                .build();
+            let tx = LegerTransactionBuilder::default().raw(raw).build();
+            txs_builder = txs_builder.push(tx);
         }
     }
+
+    let txs = txs_builder.build();
 
     //生成更新后的状态根
     let new_root = smt.root().clone();
@@ -151,8 +200,6 @@ fn test_success() {
 
     let item_vec = item_vec_builder.build();
 
-    let txs = LegerTransactionVecBuilder::default().build();
-
     //生成Witness
     let updata_action = SmtUpdateActionBuilder::default()
         .proof(
@@ -164,10 +211,13 @@ fn test_success() {
         .txs(txs)
         .build();
 
-    let witness = WitnessArgsBuilder::default()
+    let witness_args = WitnessArgsBuilder::default()
         .input_type(Some(updata_action.as_bytes()).pack())
         .build();
 
+    let witness = witness_args.as_bytes().pack();
+
+    print!("witness len:{}\n", witness.len());
     // build transaction
     let tx = TransactionBuilder::default()
         .input(input)
@@ -175,7 +225,7 @@ fn test_success() {
         .output_data(sst_data_new.as_bytes().pack())
         .cell_dep(lock_script_dep)
         .cell_dep(sst_script_dep)
-        .witness(witness.as_bytes().pack())
+        .witness(witness)
         .build();
     let tx = context.complete_tx(tx);
 

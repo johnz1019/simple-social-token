@@ -14,11 +14,11 @@ use sparse_merkle_tree::{SparseMerkleTree, H256};
 
 use sst_mol::{AccountValue, AccountValueBuilder};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct AccountVal {
-    amount: u128,
-    nonce: u64,
-    timestamp: u64,
+    pub amount: u128,
+    pub nonce: u64,
+    pub timestamp: u64,
 }
 
 impl From<&AccountVal> for AccountValue {
@@ -35,21 +35,17 @@ impl From<&AccountVal> for AccountValue {
 impl From<AccountValue> for AccountVal {
     fn from(val: AccountValue) -> AccountVal {
         let mut amount_bytes = [0u8; 16];
-        for i in 0..amount_bytes.len() {
-            amount_bytes[i] = val.amount().as_slice()[i];
-        }
+        amount_bytes.copy_from_slice(val.amount().as_slice());
         let amount = u128::from_le_bytes(amount_bytes);
 
         let mut nonce_bytes = [0u8; 8];
-        for i in 0..nonce_bytes.len() {
-            nonce_bytes[i] = val.nonce().as_slice()[i];
-        }
+        nonce_bytes.copy_from_slice(val.nonce().as_slice());
         let nonce = u64::from_le_bytes(nonce_bytes);
+
         let mut timestamp_bytes = [0u8; 8];
-        for i in 0..nonce_bytes.len() {
-            timestamp_bytes[i] = val.timestamp().as_slice()[i];
-        }
+        timestamp_bytes.copy_from_slice(val.timestamp().as_slice());
         let timestamp = u64::from_le_bytes(timestamp_bytes);
+
         return AccountVal {
             amount,
             nonce,
