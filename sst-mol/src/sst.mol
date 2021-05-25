@@ -1,6 +1,5 @@
 import blockchain;
 
-
 //Cell的data
 struct SSTData {
     amount:   Uint128,
@@ -12,10 +11,10 @@ struct SSTData {
 struct AccountValue {
     amount:    Uint128,
     nonce:     Uint64,
-    timestamp: Uint64,
+    clock_id:  Uint64,
 }
 
-//转账的目的地
+//转账目标
 struct Target {
     to: Byte32,       //接收方公钥hash
     amount:Uint128,   //转账金额
@@ -26,11 +25,12 @@ vector Targets <Target>;
 
 //一次原始交易
 table RawLedgerTransaction {
-  ledger_cell_typeid: Byte32,     // 避免跨ledger cells的签名重放攻击
-  from:               Byte32,     // publickey hash
-  nonce:              Uint64,     // 本次交易的nonce
-  total_amount:       Uint128,    // 转账总额
-  to:                 Targets,
+  type_id:      Byte32,  // 本交易指定的ledger cell的type_id，
+  from:         Byte32,  // publickey hash
+  nonce:        Uint64,  // 本次交易的nonce
+  total_amount: Uint128, // 本次转账总额
+  fee:          Uint128, // 给打包者的小费
+  targets:      Targets, // 同时给多人转账
 }
 
 //交易加上签名
@@ -44,11 +44,16 @@ table LegerTransaction {
 vector LegerTransactionVec <LegerTransaction>;
 
 
+table LegerTransactionWithFlag {
+    flag: byte,                 //用于一些区分
+    txs:  LegerTransactionVec,  //本次打包涉及的一系列交易
+}
+
 //SMT的更新项
 struct SmtUpdateItem {
-    key:       Byte32,
-    old_value: AccountValue,
-    new_value: AccountValue,
+    key:       Byte32,       //本更新项的Key
+    old_value: AccountValue, //本更新项的旧值
+    new_value: AccountValue, //本更新项的新值
 }
 
 //SMT的MerkleProof
@@ -59,7 +64,7 @@ vector SmtUpdateItemVec <SmtUpdateItem>;
 
 //一次更新需要的所有信息
 table SmtUpdateAction {
-    txs:     LegerTransactionVec,
-    updates: SmtUpdateItemVec,
-    proof:   SmtProof,
+    updates:   SmtUpdateItemVec,     //本次打包涉及的状态更新
+    proof:     SmtProof,             //本次打包状态转换的证明
+    committer: Byte32,               //本次打包的交易提交者，将会收到所有的手续费
 }

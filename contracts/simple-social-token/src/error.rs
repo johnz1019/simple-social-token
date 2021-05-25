@@ -9,7 +9,10 @@ pub enum Error {
     Encoding,
     // Add customized errors here...
     ProofInvalid,
-    ResultUnmatch
+    ResultUnmatch,
+    OverFlow,
+    InvalidTypeID,
+    WrongCellCount
 }
 
 impl From<SysError> for Error {

@@ -18,7 +18,7 @@ use sst_mol::{AccountValue, AccountValueBuilder};
 pub struct AccountVal {
     pub amount: u128,
     pub nonce: u64,
-    pub timestamp: u64,
+    pub clock_id: u64,
 }
 
 impl From<&AccountVal> for AccountValue {
@@ -27,7 +27,7 @@ impl From<&AccountVal> for AccountValue {
         builder
             .amount(Uint128::from_slice(&val.amount.to_le_bytes()).unwrap())
             .nonce(Uint64::from_slice(&val.nonce.to_le_bytes()).unwrap())
-            .timestamp(Uint64::from_slice(&val.timestamp.to_le_bytes()).unwrap())
+            .clock_id(Uint64::from_slice(&val.clock_id.to_le_bytes()).unwrap())
             .build()
     }
 }
@@ -42,14 +42,14 @@ impl From<AccountValue> for AccountVal {
         nonce_bytes.copy_from_slice(val.nonce().as_slice());
         let nonce = u64::from_le_bytes(nonce_bytes);
 
-        let mut timestamp_bytes = [0u8; 8];
-        timestamp_bytes.copy_from_slice(val.timestamp().as_slice());
-        let timestamp = u64::from_le_bytes(timestamp_bytes);
+        let mut clock_id_bytes = [0u8; 8];
+        clock_id_bytes.copy_from_slice(val.clock_id().as_slice());
+        let clock_id = u64::from_le_bytes(clock_id_bytes);
 
         return AccountVal {
             amount,
             nonce,
-            timestamp,
+            clock_id,
         };
     }
 }
@@ -62,12 +62,12 @@ impl AccountVal {
     pub fn random(rng: &mut ThreadRng) -> AccountVal {
         let amount: u128 = rng.gen();
         let nonce: u64 = rng.gen();
-        let timestamp: u64 = rng.gen();
+        let clock_id: u64 = rng.gen();
 
         AccountVal {
             amount: amount,
             nonce: nonce,
-            timestamp: timestamp,
+            clock_id: clock_id,
         }
     }
 }
@@ -81,7 +81,7 @@ impl Value for AccountVal {
         let mut hasher = new_blake2b();
         hasher.update(&self.amount.to_le_bytes());
         hasher.update(&self.nonce.to_le_bytes());
-        hasher.update(&self.timestamp.to_le_bytes());
+        hasher.update(&self.clock_id.to_le_bytes());
         hasher.finalize(&mut buf);
         buf.into()
     }
@@ -99,12 +99,12 @@ lazy_static! {
     pub static ref SMT_EXISTING: AccountVal = AccountVal {
         amount: 1000,
         nonce: 0,
-        timestamp: 0,
+        clock_id: 0,
     };
     pub static ref SMT_NOT_EXISTING: AccountVal = AccountVal {
         amount: 0,
         nonce: 0,
-        timestamp: 0,
+        clock_id: 0,
     };
     pub static ref TYPE_ID_CODE_HASH: [u8; 32] = [
         0x54, 0x59, 0x50, 0x45, 0x5f, 0x49, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

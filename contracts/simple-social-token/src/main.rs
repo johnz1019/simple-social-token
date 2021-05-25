@@ -14,6 +14,7 @@
 mod entry;
 mod error;
 mod hash;
+mod type_id;
 
 use ckb_std::{
     default_alloc,
