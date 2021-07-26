@@ -5,6 +5,7 @@ contracts/**/target/*
 
 # C
 contracts/c/build/*
+smt-c-scripts/build/*
 
 # others
 build/*

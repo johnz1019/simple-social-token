@@ -1,0 +1,3 @@
+[submodule "smt-c-scripts/deps/ckb-c-stdlib-20210413"]
+	path = smt-c-scripts/deps/ckb-c-stdlib-20210413
+	url = https://github.com/nervosnetwork/ckb-c-stdlib.git

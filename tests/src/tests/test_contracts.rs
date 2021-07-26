@@ -16,6 +16,7 @@ use sparse_merkle_tree::{traits::Value, H256};
 use super::*;
 use ckb_testtool::ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::*, prelude::*};
 use ckb_testtool::{builtin::ALWAYS_SUCCESS, context::Context};
+use std::fs;
 
 #[test]
 fn test_success() {
@@ -23,8 +24,17 @@ fn test_success() {
     let mut context = Context::default();
     let sst_bin: Bytes = Loader::default().load_binary("simple-social-token");
     let sst_out_point = context.deploy_cell(sst_bin);
+
     let always_success_bin = ALWAYS_SUCCESS.clone();
     let always_success_out_point = context.deploy_cell(always_success_bin);
+
+    let smt_bin: Bytes = fs::read("../smt-c-scripts/build/ckb_smt")
+    .expect("load ../smt-c-scripts/build/ckb_smt")
+    .into();
+    let smt_out_point = context.deploy_cell(smt_bin);
+
+    // let smt_dep = CellDep::new_builder().out_point(smt_out_point).build();
+    // print!("smt_dep {:?}", smt_dep);
 
     // prepare scripts
     let lock_script = context
@@ -34,12 +44,15 @@ fn test_success() {
         .out_point(always_success_out_point)
         .build();
 
-    let sst_script = context.build_script(&sst_out_point, random_20bytes());
-    let sst_script_dep = CellDep::new_builder().out_point(sst_out_point).build();
+    // let sst_script = context.build_script(&sst_out_point, random_20bytes());
+    // let sst_script_dep = CellDep::new_builder().out_point(sst_out_point).build();
+
+    let sst_script = context.build_script(&smt_out_point, random_20bytes());
+    let sst_script_dep = CellDep::new_builder().out_point(smt_out_point).build();
 
     //设定状态树的参数
-    let account_count = 10000;
-    let update_count = 10;
+    let account_count = 1000;
+    let update_count = 5;
     let mut smt = SMT::default();
     let mut rng = thread_rng();
     let mut keys = HashMap::with_capacity(account_count);
@@ -49,6 +62,7 @@ fn test_success() {
         let value = AccountVal::random(&mut rng);
         keys.insert(key, value.clone());
         smt.update(key, value).unwrap();
+
     }
 
     //获得旧的状态树根
@@ -60,6 +74,8 @@ fn test_success() {
         .info(Byte32::from_slice(&[1u8; 32]).unwrap())
         .smt_root(Byte32::from_slice(old_root.as_slice()).unwrap())
         .build();
+
+    print!("old data: {:?}\n", sst_data_old);
 
     // prepare cells
     let input_out_point = context.create_cell(
@@ -83,10 +99,12 @@ fn test_success() {
 
         mod_keys.push((key.clone(), value.clone(), new_value.clone()));
 
+        // println!("key {:?} {:?} {:?}", key.clone(), value.clone().to_h256(), new_value.clone().to_h256());
         smt.update(*key, new_value).unwrap();
-        if count > update_count {
+        if count >= update_count {
             break;
         }
+
     }
 
     //生成更新后的状态根
@@ -124,10 +142,12 @@ fn test_success() {
     //将证明转成字节
     let merkle_proof_bytes: Vec<u8> = merkle_proof_compiled.into();
 
-    print!("proof len:{}\n", merkle_proof_bytes.len());
+    // print!("proof len:{}\n", merkle_proof_bytes.len());
 
     //得到更新序列
     let mut item_vec_builder = SmtUpdateItemVecBuilder::default();
+    println!("mod_keys.len : {}", mod_keys.len());
+
     for (key, old_value, new_value) in mod_keys.into_iter() {
         let item = SmtUpdateItemBuilder::default()
             .key(ckb_types::packed::Byte32::from_slice(key.as_slice()).unwrap())
@@ -137,12 +157,14 @@ fn test_success() {
         item_vec_builder = item_vec_builder.push(item);
     }
 
+
     let sst_data_new = SSTDataBuilder::default()
         .amount(Uint128::from_slice(&(10000000 as u128).to_le_bytes()).unwrap())
         .info(Byte32::from_slice(&[1u8; 32]).unwrap())
         .smt_root(Byte32::from_slice(new_root.as_slice()).unwrap())
         .build();
 
+    print!("new data: {:?}\n", sst_data_new);
     let output = CellOutput::new_builder()
         .capacity(1000u64.pack())
         .lock(lock_script.clone())
@@ -150,6 +172,8 @@ fn test_success() {
         .build();
 
     let item_vec = item_vec_builder.build();
+
+    // println!("item_vec {:?}", item_vec);
 
     let txs = LegerTransactionVecBuilder::default().build();
 
@@ -164,15 +188,20 @@ fn test_success() {
         .txs(txs)
         .build();
 
+    // println!("update_action {:?}", updata_action);
+
     let witness = WitnessArgsBuilder::default()
         .input_type(Some(updata_action.as_bytes()).pack())
         .build();
+
+    // println!("witness_args {:?}", witness);
 
     // build transaction
     let tx = TransactionBuilder::default()
         .input(input)
         .output(output)
         .output_data(sst_data_new.as_bytes().pack())
+        // .cell_dep(smt_dep)
         .cell_dep(lock_script_dep)
         .cell_dep(sst_script_dep)
         .witness(witness.as_bytes().pack())

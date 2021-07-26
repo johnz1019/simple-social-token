@@ -2177,7 +2177,7 @@ version = "0.1.0"
 dependencies = [
  "blake2b-ref 0.1.0",
  "ckb-std",
- "sparse-merkle-tree",
+ "sparse-merkle-tree 0.4.0-rc1",
  "sst-mol",
 ]
 
@@ -2219,6 +2219,15 @@ name = "sparse-merkle-tree"
 version = "0.4.0-rc1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec860bc00b39e71398547445bda898397ee341c97796cb65fd8a0f3bff22cc10"
+dependencies = [
+ "cfg-if 0.1.10",
+]
+
+[[package]]
+name = "sparse-merkle-tree"
+version = "0.5.0-rc2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4edfa0fa43ab341aa5985e6c745c04836f465480c52a8e35d16d26be31f7dbea"
 dependencies = [
  "blake2b-rs",
  "cfg-if 0.1.10",
@@ -2348,7 +2357,7 @@ dependencies = [
  "lazy_static",
  "rand 0.6.5",
  "rand_chacha 0.1.1",
- "sparse-merkle-tree",
+ "sparse-merkle-tree 0.5.0-rc2",
  "sst-mol",
 ]
 

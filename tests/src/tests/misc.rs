@@ -87,6 +87,7 @@ impl Value for AccountVal {
         hasher.update(&self.nonce.to_le_bytes());
         hasher.update(&self.timestamp.to_le_bytes());
         hasher.finalize(&mut buf);
+
         buf.into()
     }
 
@@ -97,7 +98,6 @@ impl Value for AccountVal {
 
 pub const BLAKE2B_KEY: &[u8] = &[];
 pub const BLAKE2B_LEN: usize = 32;
-pub const PERSONALIZATION: &[u8] = b"ckb-default-hash";
 
 lazy_static! {
     pub static ref SMT_EXISTING: AccountVal = AccountVal {
@@ -132,6 +132,9 @@ lazy_static! {
     ];
 }
 
+// const PERSONALIZATION: &[u8] = b"sparsemerkletree";
+const PERSONALIZATION: &[u8] = b"ckb-default-hash";
+
 pub struct CKBBlake2bHasher(Blake2b);
 
 impl Default for CKBBlake2bHasher {
@@ -140,13 +143,16 @@ impl Default for CKBBlake2bHasher {
             .personal(PERSONALIZATION)
             .key(BLAKE2B_KEY)
             .build();
-        CKBBlake2bHasher(blake2b)
+            CKBBlake2bHasher(blake2b)
     }
 }
 
 impl Hasher for CKBBlake2bHasher {
     fn write_h256(&mut self, h: &H256) {
         self.0.update(h.as_slice());
+    }
+    fn write_byte(&mut self, b: u8) {
+        self.0.update(&[b][..]);
     }
     fn finish(self) -> H256 {
         let mut hash = [0u8; 32];
