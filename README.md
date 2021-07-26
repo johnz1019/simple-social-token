@@ -5,7 +5,9 @@ a simple social token  for Nervos CKB.
 Build contracts:
 
 ``` sh
-capsule build
+cd smt-c-scripts
+make ckb_smt-via-docker
+cd ..
 ```
 
 Run tests:
